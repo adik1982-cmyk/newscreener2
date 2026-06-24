@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -74,12 +75,18 @@
 
     /* ── STOCK ROWS ── */
     .stock-list{padding-bottom:calc(70px + var(--safe-b));}
-    .stock-row{padding:10px 16px;display:grid;grid-template-columns:2.2fr 1fr 0.8fr 0.8fr 0.8fr;gap:4px;border-bottom:1px solid var(--panel);border-left:3px solid transparent;align-items:center;cursor:pointer;transition:background .1s;}
-    .stock-row:active{background:var(--panel2);}
+    .stock-row{padding:10px 16px;display:grid;grid-template-columns:2.2fr 1fr 0.8fr 0.8fr 0.8fr;gap:4px;border-bottom:1px solid var(--panel);border-left:3px solid transparent;align-items:center;cursor:pointer;transition:background .15s,border-left-color .15s;}
+    .stock-row:hover{background:#1a2535;border-right:3px solid var(--blue);}
+    .stock-row:active{background:#1e3a5f;transform:scale(0.99);}
+    .row-touch{background:#1a2535 !important;transform:scale(0.98) !important;}
     .stock-row.strong-bull{border-left-color:var(--green);}
+    .stock-row.strong-bull:hover{background:#0a1e0f;border-right:3px solid var(--green);}
     .stock-row.bull{border-left-color:var(--amber);}
+    .stock-row.bull:hover{background:#1e1500;border-right:3px solid var(--amber);}
     .stock-row.strong-bear{border-left-color:var(--red);}
+    .stock-row.strong-bear:hover{background:#1e0505;border-right:3px solid var(--red);}
     .stock-row.bear{border-left-color:#f97316;}
+    .stock-row.bear:hover{background:#1e0e00;border-right:3px solid #f97316;}
     .row-sym{font-size:13px;font-weight:600;color:#f1f5f9;}
     .row-meta{display:flex;align-items:center;gap:4px;margin-top:2px;}
     .sig-badge{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600;}
@@ -695,7 +702,12 @@ function renderList(){
     const cc=r.chg>=0?'pos':'neg';
     const oc=r.oiChg>=5?'pos':r.oiChg>=0?'neu':'neg';
     const rc=r.rsi>=60?'pos':r.rsi>=50?'amb':'neg';
-    return `<div class="stock-row ${si.rowCls}" onclick="openTV('${r.sym}')">
+    return `<div class="stock-row ${si.rowCls}"
+      onclick="openTV('${r.sym}')"
+      onmouseenter="this.style.opacity='0.85'"
+      onmouseleave="this.style.opacity='1'"
+      ontouchstart="this.classList.add('row-touch')"
+      ontouchend="this.classList.remove('row-touch')">
       <div>
         <div class="row-sym">${r.sym}</div>
         <div class="row-meta"><span class="${si.cls}">${si.label}</span><span class="row-sect">${r.sector}</span></div>
@@ -851,33 +863,37 @@ function sendNotif(title,body){
 
 // ── TradingView ────────────────────────────────────────────────────────────
 function openTV(sym){
-  const nseSymbol = 'NSE:' + sym;
-  const encoded   = encodeURIComponent(nseSymbol);
-  const isAndroid = /android/i.test(navigator.userAgent);
-  const isIOS     = /iphone|ipad|ipod/i.test(navigator.userAgent);
-
-  // SuperChart URL — works in both app and browser
+  const nseSymbol  = 'NSE:' + sym;
+  const encoded    = encodeURIComponent(nseSymbol);
+  const isAndroid  = /android/i.test(navigator.userAgent);
+  const isIOS      = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const superChart = 'https://in.tradingview.com/chart/?symbol=' + encoded;
 
   if(isAndroid){
-    // Android intent — opens TradingView app SuperChart directly
-    // package=com.tradingview.tradingviewapp is the official TV app package
-    const fallback = encodeURIComponent(superChart);
+    // Method 1: Direct app scheme — Samsung S25 Ultra preferred method
+    const appScheme = 'tradingview://chart/?symbol=' + nseSymbol;
+    // Method 2: Intent fallback with package name
     const intent = 'intent://chart/?symbol=' + encoded +
-      '#Intent;' +
-      'scheme=tradingview;' +
-      'package=com.tradingview.tradingviewapp;' +
+      '#Intent;scheme=tradingview;package=com.tradingview.tradingviewapp;' +
       'action=android.intent.action.VIEW;' +
-      'category=android.intent.category.BROWSABLE;' +
-      'S.browser_fallback_url=' + fallback + ';end';
-    window.location.href = intent;
+      'S.browser_fallback_url=' + encodeURIComponent(superChart) + ';end';
+
+    // Try direct scheme first — works on most Samsung devices
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    iframe.src = appScheme;
+
+    // After short delay, try intent if app didn't open
+    setTimeout(()=>{
+      document.body.removeChild(iframe);
+      window.location.href = intent;
+    }, 500);
+
   } else if(isIOS){
-    // iOS — try app scheme, fallback to superchart browser
-    const appLink = 'tradingview://chart/?symbol=' + encoded;
-    window.location.href = appLink;
+    window.location.href = 'tradingview://chart/?symbol=' + nseSymbol;
     setTimeout(()=>{ window.open(superChart,'_blank'); }, 1500);
   } else {
-    // Desktop — open SuperChart in new tab
     window.open(superChart, '_blank');
   }
 }
