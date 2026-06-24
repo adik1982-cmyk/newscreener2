@@ -870,30 +870,23 @@ function openTV(sym){
   const superChart = 'https://in.tradingview.com/chart/?symbol=' + encoded;
 
   if(isAndroid){
-    // Method 1: Direct app scheme — Samsung S25 Ultra preferred method
-    const appScheme = 'tradingview://chart/?symbol=' + nseSymbol;
-    // Method 2: Intent fallback with package name
-    const intent = 'intent://chart/?symbol=' + encoded +
-      '#Intent;scheme=tradingview;package=com.tradingview.tradingviewapp;' +
-      'action=android.intent.action.VIEW;' +
+    // Android: Use intent URL directly — most reliable method for Chrome on Samsung
+    // This tells Chrome to open TradingView app directly
+    const intent =
+      'intent://chart/?symbol=' + encoded +
+      '#Intent;' +
+      'scheme=tradingview;' +
+      'package=com.tradingview.tradingviewapp;' +
       'S.browser_fallback_url=' + encodeURIComponent(superChart) + ';end';
-
-    // Try direct scheme first — works on most Samsung devices
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-    iframe.src = appScheme;
-
-    // After short delay, try intent if app didn't open
-    setTimeout(()=>{
-      document.body.removeChild(iframe);
-      window.location.href = intent;
-    }, 500);
+    window.location.href = intent;
 
   } else if(isIOS){
-    window.location.href = 'tradingview://chart/?symbol=' + nseSymbol;
-    setTimeout(()=>{ window.open(superChart,'_blank'); }, 1500);
+    // iOS: Universal link — opens app if installed, Safari otherwise
+    const iosLink = 'https://www.tradingview.com/chart/?symbol=' + encoded;
+    window.location.href = iosLink;
+
   } else {
+    // Desktop
     window.open(superChart, '_blank');
   }
 }
